@@ -23,7 +23,7 @@ function Get-CourseUser {
         <# Action to perform if the condition is true #>
         $output = $output | Where-Object -Property Age -ge $OlderThan
     }
-
+    $output
 }
 
 function Add-CourseUser {
