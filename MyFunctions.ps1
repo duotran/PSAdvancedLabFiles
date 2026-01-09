@@ -1,7 +1,45 @@
+enum ColorEnum {
+    red
+    green
+    blue
+    yellow
+}
+
+class Participant {
+    [String] $name
+    [int] $Age
+    [String] $Color
+    [int] $UserID
+
+    Participant ([string] $name, [int] $Age, [String] $color, [int] $UserID) {
+        $this.name = $name
+        $this.Age = $Age
+        $this.Color = $Color
+        $this.UserID = $UserID
+   
+    }
+
+    [String] toString() {
+        return "{0},{1},{2},{3}" -f $this.name, $this.Age, $this.Color, $this.UserId
+    }
+
+}
 function GetUserData {
-   $MyUserListFile = ".\MyLabFile.csv"
-    $MyUserList = Get-Content -Path $MyUserListFile | ConvertFrom-Csv
-    $MyUserList
+    try {
+        $MyUserListFile = ".\MyLabFile.csv"
+        $MyUserList = Get-Content -Path $MyUserListFile -ErrorAction stop | ConvertFrom-Csv
+        $MyUserList
+    }
+    catch [System.Management.Automation.ItemNotFoundException] {
+        Write-Error "Database file does not exist"
+    }
+    catch {
+        $_
+    }
+   
+    #$MyUserList = Invoke-RestMethod 'http://localhost:666/api'
+    #$MyUserList = $MyUserList.result
+
 }
 
 function Get-CourseUser {
@@ -31,14 +69,14 @@ function Add-CourseUser {
     param (
         $DatabaseFile = ".\MyLabFile.csv",
         [Parameter(Mandatory)]
+        [ValidatePattern({ '^[A-Z][\w\-\s]*$' }, ErrorMessage = 'Name is in an incorrect format')]
         [string]$Name,
 
         [Parameter(Mandatory)]
         [Int]$Age,
 
-        [ValidateSet("red", "green", "blue", "yellow")]
         [Parameter(Mandatory)] 
-        [String]$color,
+        [ColorEnum]$color,
 
         $UserID
     )
@@ -54,11 +92,12 @@ function Add-CourseUser {
     }
     
     end {
-        $MyCsvUser = "$Name,$Age,{0},{1}" -f $Color, $UserId
+        $newuser = [Participant]::New($Name, $age, $color, $userid)
+        $MyCsvUser = $newuser.ToString()
         $NewCSv = Get-Content $DatabaseFile -Raw
         $NewCSv += $MyCsvUser
 
-       Set-Content -Value $NewCSv -Path $DatabaseFile
+        Set-Content -Value $NewCSv -Path $DatabaseFile
     }
 
 
@@ -72,8 +111,8 @@ function Remove-CourseUser {
     )
     
     begin {
-          $MyUserList = Get-Content -Path $DatabaseFile | ConvertFrom-Csv
-          $RemoveUser = $MyUserList | Out-ConsoleGridView -OutputMode Single
+        $MyUserList = Get-Content -Path $DatabaseFile | ConvertFrom-Csv
+        $RemoveUser = $MyUserList | Out-ConsoleGridView -OutputMode Single
     }
     
     process {
@@ -83,19 +122,41 @@ function Remove-CourseUser {
     end {
        
         if ($PSCmdlet.ShouldProcess([string]$RemoveUser.Name)) {
-        $MyUserList = $MyUserList | Where-Object {
-            -not (
-                $_.Name -eq $RemoveUser.Name -and
-                $_.Age -eq $RemoveUser.Age -and
-                $_.Color -eq $RemoveUser.Color -and
-                $_.Id -eq $RemoveUser.Id
-            )
-        }
-        Set-Content -Value $($MyUserList | ConvertTo-Csv -notypeInformation) -Path $MyUserListFile
+            $MyUserList = $MyUserList | Where-Object {
+                -not (
+                    $_.Name -eq $RemoveUser.Name -and
+                    $_.Age -eq $RemoveUser.Age -and
+                    $_.Color -eq $RemoveUser.Color -and
+                    $_.Id -eq $RemoveUser.Id
+                )
+            }
+            Set-Content -Value $($MyUserList | ConvertTo-Csv -notypeInformation) -Path $MyUserListFile
         
-    }
+        }
         else {
             Write-Output "Did not remove user $($RemoveUser.Name)"
         }
+    }
+}
+
+function Confirm-CourseID {
+    [CmdletBinding()]
+    param ()
+              
+    begin {
+        $AllUsers = GetUserData
+    }
+    
+    process {
+        foreach ($user in $AllUsers) {
+            if ($user.id -notmatch '^\d+$') {
+                write-error  "Name: $($user.name), ID: $($user.ID) contains non-numerical characters" 
+            }
         }
+        
+    }
+    
+    end {
+        
+    }
 }
