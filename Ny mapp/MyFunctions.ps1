@@ -26,7 +26,7 @@ class Participant {
 }
 function GetUserData {
     try {
-        $MyUserListFile = ".\MyLabFile.csv"
+        $MyUserListFile = "$PSScriptRoot\MyLabFile.csv"
         $MyUserList = Get-Content -Path $MyUserListFile -ErrorAction stop | ConvertFrom-Csv
         $MyUserList
     }
@@ -34,7 +34,7 @@ function GetUserData {
         Write-Error "Database file does not exist"
     }
     catch {
-        $_
+        throw "Unknown error $_" 
     }
    
     #$MyUserList = Invoke-RestMethod 'http://localhost:666/api'
@@ -67,7 +67,7 @@ function Get-CourseUser {
 function Add-CourseUser {
     [CmdletBinding()]
     param (
-        $DatabaseFile = ".\MyLabFile.csv",
+        $DatabaseFile = "$PSScriptRoot\MyLabFile.csv",
         [Parameter(Mandatory)]
         [ValidatePattern({ '^[A-Z][\w\-\s]*$' }, ErrorMessage = 'Name is in an incorrect format')]
         [string]$Name,
@@ -106,7 +106,7 @@ function Add-CourseUser {
 function Remove-CourseUser {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param (
-        $DatabaseFile = ".\MyLabFile.csv"
+        $DatabaseFile = "$PSScriptRoot\MyLabFile.csv"
       
     )
     
